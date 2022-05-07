@@ -12,9 +12,9 @@ const fakeUser = {
   tfaSecret: 'abc'
 } as User;
 
-const loginThrottlerStub = (user = fakeUser) => {
+const loginThrottlerStub = (blocked: boolean) => {
   return {
-    isLoginBlocked: jest.fn(() => Promise.resolve(user))
+    isLoginBlocked: jest.fn(() => Promise.resolve(blocked))
   } as unknown as Pick<LoginThrottler, 'isLoginBlocked'> as LoginThrottler;
 }
 
@@ -27,7 +27,7 @@ const userRepoStub = (user = fakeUser) => {
 describe('JwtAuthService', () => {
   describe('authenticate method', () => {
     it('returns a request handler', () => {
-      const jwtAuthService = new JwtAuthService(loginThrottlerStub(), userRepoStub());
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
       const result = jwtAuthService.authenticate();
       expect(typeof result).toBe('function');
     });
@@ -35,7 +35,7 @@ describe('JwtAuthService', () => {
 
   describe('login method', () => {
     it('logs in an returns the logged user', (done) => {
-      const jwtAuthService = new JwtAuthService(loginThrottlerStub(), userRepoStub());
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
       const request = new AuthRequest('bartosz@app.com', '123', '', {});
 
       jwtAuthService.login(request).then((user) => {
@@ -45,7 +45,7 @@ describe('JwtAuthService', () => {
     });
 
     it('fails to login with a wrong password', (done) => {
-      const jwtAuthService = new JwtAuthService(loginThrottlerStub(), userRepoStub());
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
       const request = new AuthRequest('bartosz@app.com', 'wrong', '', {});
 
       jwtAuthService.login(request).catch(() => {
@@ -55,7 +55,7 @@ describe('JwtAuthService', () => {
 
     it('fails to login unconfirmed user with a valid password', (done) => {
       const unconfirmedUser = { ...fakeUser, confirmed: false } as User;
-      const jwtAuthService = new JwtAuthService(loginThrottlerStub(), userRepoStub(unconfirmedUser));
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub(unconfirmedUser));
       const request = new AuthRequest('bartosz@app.com', '123', '', {});
 
       jwtAuthService.login(request).catch(() => {
@@ -67,7 +67,7 @@ describe('JwtAuthService', () => {
 
 describe('logout method', () => {
   it('resolves Promise', (done) => {
-    const jwtAuthService = new JwtAuthService(loginThrottlerStub(), userRepoStub());
+    const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
     jwtAuthService.getCurrentUser().then(() => {
       done();
     })
@@ -76,7 +76,7 @@ describe('logout method', () => {
 
 describe('getCurrentUser method', () => {
   it('resolves Promise', (done) => {
-    const jwtAuthService = new JwtAuthService(loginThrottlerStub(), userRepoStub());
+    const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
     jwtAuthService.getCurrentUser().then(() => {
       done();
     })
