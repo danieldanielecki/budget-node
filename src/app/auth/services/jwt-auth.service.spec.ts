@@ -18,6 +18,10 @@ const loginThrottlerStub = (blocked: boolean) => {
   } as unknown as Pick<LoginThrottler, 'isLoginBlocked'> as LoginThrottler;
 }
 
+const loginFailureStub = {
+  registerLoginFailure: jest.fn(() => Promise.reject())
+} as Pick<LoginThrottler, 'registerLoginFailure'>;
+
 const userRepoStub = (user = fakeUser) => {
   return {
     getUserByEmail: jest.fn(() => Promise.resolve(user))
@@ -34,8 +38,8 @@ describe('JwtAuthService', () => {
   });
 
   describe('login method', () => {
-    it('logs in an returns the logged user', (done) => {
-      const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
+    it('logs in and returns the logged user', (done) => {
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(false), userRepoStub());
       const request = new AuthRequest('bartosz@app.com', '123', '', {});
 
       jwtAuthService.login(request).then((user) => {
@@ -44,9 +48,9 @@ describe('JwtAuthService', () => {
       });
     });
 
-    it('fails to login with a wrong password', (done) => {
+    it('fails to login with when exceeding timeout', (done) => {
       const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
-      const request = new AuthRequest('bartosz@app.com', 'wrong', '', {});
+      const request = new AuthRequest('bartosz@app.com', '123', '', {});
 
       jwtAuthService.login(request).catch(() => {
         done();
@@ -55,10 +59,20 @@ describe('JwtAuthService', () => {
 
     it('fails to login unconfirmed user with a valid password', (done) => {
       const unconfirmedUser = { ...fakeUser, confirmed: false } as User;
-      const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub(unconfirmedUser));
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(false), userRepoStub(unconfirmedUser));
       const request = new AuthRequest('bartosz@app.com', '123', '', {});
 
       jwtAuthService.login(request).catch(() => {
+        done();
+      });
+    });
+
+    it('fails to login with a wrong password', (done) => {
+      const jwtAuthService = new JwtAuthService(loginThrottlerStub(false), userRepoStub());
+      const request = new AuthRequest('bartosz@app.com', 'wrong', '', {});
+
+      jwtAuthService.login(request).catch(() => {
+        expect(loginFailureStub.registerLoginFailure).toHaveBeenCalledWith(request, fakeUser);
         done();
       });
     });
@@ -68,7 +82,7 @@ describe('JwtAuthService', () => {
 describe('logout method', () => {
   it('resolves Promise', (done) => {
     const jwtAuthService = new JwtAuthService(loginThrottlerStub(true), userRepoStub());
-    jwtAuthService.getCurrentUser().then(() => {
+    jwtAuthService.logout().then(() => {
       done();
     })
   });
