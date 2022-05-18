@@ -11,9 +11,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:integration": "jest --testMatch **/integration/*.(it).ts",
-    "test:e2e": "jest --testMatch **/e2e/*.(e2e).ts",
-    "test:arch": "jest --testMatch **/arch/*.(spec).ts",
-    "test:pact": "jest --testMatch **/contract/*.(pact).ts",
+    "test:e2e": "jest --testMatch **/e2e/*.e2e.ts",
+    "test:arch": "jest --testMatch **/arch/*.spec.ts",
+    "test:pact": "jest --testMatch **/contract/*.pact.ts",
     "sonar": "sonar-scanner.bat"
   },
   "author": "",
